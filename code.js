@@ -1,4 +1,4 @@
-var myVersion = 0.60, myProductName = "wpInboundRss";
+var myVersion = 0.61, myProductName = "wpInbound";
 
 const appConsts = {
 	urlFeedlandSocket: "wss://feedland.social/",
@@ -51,7 +51,7 @@ function addToLog (theEvent, thePost) {
 	appPrefs.theLog.push ({
 		theEvent, 
 		idItem: theFeedItem.id,
-		url: theDraft.url,
+		url: (theDraft === undefined) ? undefined : theDraft.url,
 		theText: theFeedItem.markdowntext,
 		when: new Date ().toLocaleString ()
 		});
@@ -79,7 +79,9 @@ function findPost (id) {
 		});
 	return (thePost);
 	}
-function newPost (theSite, theFeedItem) {
+
+function newWordlandPost (theSite, theFeedItem, callback) {
+	const theUserInfo = myWordpress.getUserInfoSync ();
 	const thePost = {
 		id: theFeedItem.id,
 		theSite,
@@ -90,12 +92,6 @@ function newPost (theSite, theFeedItem) {
 	appPrefs.thePosts.push (thePost);
 	prefsChanged ();
 	
-	addToLog (new Date ().toLocaleTimeString () + " newPost", thePost);
-	
-	return (thePostRec);
-	}
-function newDraft () {
-	const theUserInfo = myWordpress.getUserInfoSync ();
 	const theDraft = {
 		title: "",
 		content: "",
@@ -111,11 +107,6 @@ function newDraft () {
 			},
 		whenCreated: new Date ()
 		}
-	return (theDraft);
-	}
-function newWordlandPost (theSite, theFeedItem, callback) {
-	const thePost = newPost (theSite, theFeedItem);
-	const theDraft = newDraft ();
 	theDraft.content = theFeedItem.markdowntext;
 	const idSite = theSite.idSite;
 	myWordpress.addPost (idSite, theDraft, function (err, theNewPost) { //5/7/25 by DW
@@ -132,6 +123,7 @@ function newWordlandPost (theSite, theFeedItem, callback) {
 			theDraft.flEnablePublish = false;
 			thePost.theDraft = theDraft;
 			prefsChanged ();
+			addToLog (new Date ().toLocaleTimeString () + " newPost", thePost);
 			}
 		});
 	}
@@ -176,6 +168,8 @@ function handleItem (flNew, theFeed, theItem) {
 			}
 		}
 	}
+
+
 function feedlandSockets (userOptions) { //9/6/25 by DW
 	const socketOptions = {
 		flWebsocketEnabled: true,
@@ -228,8 +222,6 @@ function feedlandSockets (userOptions) { //9/6/25 by DW
 	
 	wsConnectUserToServer (socketOptions); //5/28/25 by DW
 	}
-
-
 function updateForLogin (flConnected) {
 	var idActive, idOther;
 	if (flConnected === undefined) {
@@ -277,7 +269,7 @@ function startup () {
 	const wpOptions = {
 		serverAddress: "https://wordland.dev/",
 		urlChatLogSocket: "wss://wordland.dev/",
-		flMarkdownProcess: false //if true it would convert content to html when we publish -- 10/10/24 by DW
+		flWatchSocketForOtherCopies: false //I don't want to be interrupted if I'm using wordland on another machine
 		}
 	myWordpress = new wordpress (wpOptions);
 	myWordpress.startup (function (err) {
