@@ -2,12 +2,12 @@ var myVersion = 0.61, myProductName = "wpInbound";
 
 const appConsts = {
 	urlFeedlandSocket: "wss://feedland.social/",
-	flStripHtmlInMarkdownText: true,
+	ctDaysBeforeRemovingPost: 5,
 	
 	theSites: [
 		{
 			feedUrl: "http://scripting.com/rss.xml",
-			idSite: 223088957 //an experimental blog
+			idSite: 237777565 //daveverse
 			}
 		],
 	}
@@ -56,9 +56,11 @@ function addToLog (theEvent, thePost) {
 		when: new Date ().toLocaleString ()
 		});
 	
-	const shortText = maxStringLength (theFeedItem.markdowntext, 50);
+	const shortText = maxStringLength (stringNthField (theFeedItem.markdowntext, "\n", 1), 50);
 	const url = theDraft.url;
-	console.log ("addToLog, " + theEvent + ", theFeedItem.id = " + theFeedItem.id + ", theDraft.url == " + theDraft.url + ", theFeedItem.markdowntext == " + shortText + "\n");
+	
+	const nowstring = new Date ().toLocaleTimeString ();
+	console.log (nowstring + ", " + theEvent + ", theFeedItem.id = " + theFeedItem.id + ", theDraft.url == " + theDraft.url + ", theFeedItem.markdowntext == " + shortText + "\n");
 	}
 
 function findSite (feedUrl) {
@@ -78,6 +80,31 @@ function findPost (id) {
 			}
 		});
 	return (thePost);
+	}
+
+function removeOldPosts () {
+	const maxSecs = appConsts.ctDaysBeforeRemovingPost * 60 * 60 * 24;
+	var newPostArray = new Array (), flChanged = false;
+	appPrefs.thePosts.forEach (function (item) {
+		const when = new Date (item.theDraft.whenCreated);
+		if (secondsSince (when) < maxSecs) {
+			newPostArray.push (item);
+			}
+		else {
+			flChanged = true;
+			}
+		});
+	if (flChanged) {
+		appPrefs.thePosts = newPostArray;
+		prefsChanged ();
+		}
+	}
+function processMarkdown (mdtext) {
+	const pattern = /^!\[\]\(([^)]*)\)/;
+	const processedText = mdtext.replace (pattern, function (whole, url) {
+		return ("<img src=\"" + url + "\" style=\"float: right; padding-left: 25px; padding-bottom: 10px; padding-top: 10px; padding-right: 15px;\">");
+		});
+	return (processedText);
 	}
 
 function newWordlandPost (theSite, theFeedItem, callback) {
@@ -107,7 +134,8 @@ function newWordlandPost (theSite, theFeedItem, callback) {
 			},
 		whenCreated: new Date ()
 		}
-	theDraft.content = theFeedItem.markdowntext;
+	theDraft.content = processMarkdown (theFeedItem.markdowntext); //fixes up images so they float on the right of the text
+	theDraft.title = theFeedItem.title; //11/16/25 by DW
 	const idSite = theSite.idSite;
 	myWordpress.addPost (idSite, theDraft, function (err, theNewPost) { //5/7/25 by DW
 		if (err) {
@@ -123,17 +151,23 @@ function newWordlandPost (theSite, theFeedItem, callback) {
 			theDraft.flEnablePublish = false;
 			thePost.theDraft = theDraft;
 			prefsChanged ();
-			addToLog (new Date ().toLocaleTimeString () + " newPost", thePost);
+			addToLog ("newPost", thePost);
 			}
 		});
 	}
 function updateWordlandPost (thePost, theUpdatedItem) {
 	const oldtext = thePost.theFeedItem.markdowntext;
 	const newtext = theUpdatedItem.markdowntext;
-	const flUpdate = newtext !== oldtext;
+	
+	const oldtitle = thePost.theFeedItem.title;
+	const newtitle = theUpdatedItem.title;
+	
+	const flUpdate = (newtext !== oldtext) || (newtitle !== oldtitle);
+	
 	if (flUpdate) {
 		const theDraft = thePost.theDraft;
-		theDraft.content = newtext;
+		theDraft.content = processMarkdown (newtext);
+		theDraft.title = newtitle; //11/15/25 by DW
 		thePost.ctUpdates++;
 		thePost.whenLastUpdate = new Date ().toLocaleString ();
 		thePost.theFeedItem = theUpdatedItem;
@@ -255,6 +289,9 @@ function startup () {
 	console.log ("startup");
 	
 	
+	function everyMinute () {
+		removeOldPosts ();
+		}
 	function everySecond () {
 		if (flPrefsChanged) {
 			savePrefs ();
@@ -286,5 +323,6 @@ function startup () {
 		});
 	
 	self.setInterval (everySecond, 1000); 
+	runEveryMinute (everyMinute);
 	hitCounter (); //9/7/25 by DW
 	}

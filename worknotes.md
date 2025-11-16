@@ -1,3 +1,13 @@
+#### 11/16/25; 9:05:04 AM by DW
+
+Process images at the beginning of markdown text as right-margin images from Scripting. 
+
+Remove posts from appPrefs after 5 days.
+
+Titles weren't being sent on new posts, they were only sent on updated posts. 
+
+In addLog, only include markdown text in the console.log entry up to the first newline. 
+
 #### 11/15/25; 9:10:59 AM by DW
 
 We're using this initially to mirror posts on scripting.com on the daveverse site. But it is more general, it can handle any number of such pairs. 
