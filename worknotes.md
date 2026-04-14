@@ -1,3 +1,11 @@
+#### 4/14/26; 1:40:11 PM by DW
+
+Process markdown text. Something must've changed somewhere, but all of a sudden unprocessed markdown text is making it into daveverse.org. 
+
+#### 3/9/26; 11:17:36 AM by DW
+
+If this app wasn't running for a while the daveverse site doesn't have the items that were posted while it was gone. It depends on them being updated in order for them to register, and they won't show up on the correct date. 
+
 #### 11/16/25; 9:05:04 AM by DW
 
 Process images at the beginning of markdown text as right-margin images from Scripting. 

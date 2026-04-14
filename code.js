@@ -44,6 +44,14 @@ function savePrefs () {
 	localStorage.socketdemo = jsonStringify (appPrefs);
 	}
 
+function nowstring () {
+	return (new Date ().toLocaleTimeString ());
+	}
+function shortText (theText) {
+	const shortText = maxStringLength (stringNthField (theText, "\n", 1), 50);
+	return (shortText);
+	}
+
 function addToLog (theEvent, thePost) {
 	const theFeedItem = thePost.theFeedItem;
 	const theDraft = thePost.theDraft;
@@ -56,11 +64,10 @@ function addToLog (theEvent, thePost) {
 		when: new Date ().toLocaleString ()
 		});
 	
-	const shortText = maxStringLength (stringNthField (theFeedItem.markdowntext, "\n", 1), 50);
+	const mdtext = shortText (theFeedItem.markdowntext);
 	const url = theDraft.url;
 	
-	const nowstring = new Date ().toLocaleTimeString ();
-	console.log (nowstring + ", " + theEvent + ", theFeedItem.id = " + theFeedItem.id + ", theDraft.url == " + theDraft.url + ", theFeedItem.markdowntext == " + shortText + "\n");
+	console.log (nowstring () + ", " + theEvent + ", theFeedItem.id = " + theFeedItem.id + ", theDraft.url == " + theDraft.url + ", theFeedItem.markdowntext == " + mdtext + "\n");
 	}
 
 function findSite (feedUrl) {
@@ -101,9 +108,13 @@ function removeOldPosts () {
 	}
 function processMarkdown (mdtext) {
 	const pattern = /^!\[\]\(([^)]*)\)/;
-	const processedText = mdtext.replace (pattern, function (whole, url) {
+	var processedText = mdtext.replace (pattern, function (whole, url) {
 		return ("<img src=\"" + url + "\" style=\"float: right; padding-left: 25px; padding-bottom: 10px; padding-top: 10px; padding-right: 15px;\">");
 		});
+	
+	var md = new Markdown.Converter (); //4/14/26 by DW
+	processedText = md.makeHtml (processedText);
+	
 	return (processedText);
 	}
 
@@ -191,7 +202,8 @@ function handleItem (flNew, theFeed, theItem) {
 	const theSite = findSite (theFeed.feedUrl);
 	if (theSite !== undefined) {
 		const msg = (flNew) ? "new" : "updated";
-		console.log (msg + " theItem.id == " + theItem.id);
+		const mdtext = shortText (stripMarkup (processMarkdown (theItem.markdowntext)));
+		console.log (nowstring () + ", " + msg + " theItem.id == " + theItem.id + ", theItem.feedUrl == " + theItem.feedUrl + ", theFeedItem.markdowntext == " + mdtext);
 		
 		const thePost = findPost (theItem.id);
 		if (thePost === undefined) { //it's new
